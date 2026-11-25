@@ -1,0 +1,342 @@
+{
+  "$schema": "../schema.json",
+  "name": "com.stunlist/stunlist",
+  "title": "StunList",
+  "category": "AI, LLMs & Agents",
+  "description": "Free site audits for agents, curated listings paid in USDC, and a USDC referral bounty.",
+  "tools": [
+    {
+      "name": "list_listings",
+      "description": "Browse or search the live, hand-curated StunList list of websites and apps. Returns name, site URL, StunList page URL, tagline, category, audience hubs and featured/changemaker flags. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Free-text search over name, tagline, description and tags."
+          },
+          "category": {
+            "type": "string",
+            "description": "Category id or slug.",
+            "enum": [
+              "cosmos",
+              "planet",
+              "science",
+              "learning",
+              "create",
+              "human",
+              "data",
+              "wonder"
+            ]
+          },
+          "hub": {
+            "type": "string",
+            "description": "Audience hub id or slug.",
+            "enum": [
+              "ai",
+              "crypto",
+              "creator",
+              "design",
+              "devtools",
+              "productivity",
+              "consumer",
+              "climate",
+              "data"
+            ]
+          },
+          "featured_only": {
+            "type": "boolean",
+            "description": "Only featured listings.",
+            "default": false
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_listing",
+      "description": "Full details of one StunList listing, looked up by its StunList id (e.g. \"alphafold\") or by the site's URL/domain. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "StunList listing id."
+          },
+          "url": {
+            "type": "string",
+            "description": "The listed site's URL or domain."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_placements",
+      "description": "Live paid placement tiers (Spotlight, Headliner, Stun of the Week, Showstopper) with current USD prices, the founding rate and spots left, Headliner slot availability, bookable Stun of the Week weeks, and the Solana wallet and currencies (SOL, USDC) used for payment. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "stun_check",
+      "description": "Free, no auth: audit any public website's launch readiness. Checks reachability over HTTPS, the same safety screening a StunList submission gets, page title and meta description, link preview (og:title, og:description, og:image, X card), mobile viewport, crawlability (meta robots noindex, robots.txt rules, sitemap line, llms.txt) and whether the StunList badge is present. Returns pass/warn/fail items, the preview, and a structured next_step: if the site passes, the exact one-call x402 or create_order path for an optional $9 Spotlight, with a slot for your referral code. Rate limited per client (5/min, 30/day).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Public https URL to check, e.g. https://example.com"
+          },
+          "ref": {
+            "type": "string",
+            "description": "Optional: your StunList referral code (from register_referrer), copied into next_step so a resulting paid order credits you."
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "create_order",
+      "description": "Create a paid placement order for a website. This ONLY creates an unpaid payment quote and does NOT move any funds. The site is screened first; blocked sites are refused. Returns orderId, token, the exact amount in USDC and SOL, the payTo Solana address, the order's reference public key, Solana Pay URLs and expiry. To pay, send the amount to payTo on Solana mainnet and attach the reference (as a read-only, non-signer account key on the transfer instruction, as Solana Pay wallets do, or as the text of an SPL Memo instruction). Then call verify_order with the transaction signature. Listing text is reviewed like any submission: name 2-60 chars, tagline 10-120, description 30-600, no links in text.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tier": {
+            "type": "string",
+            "description": "Placement tier. launch = Spotlight, supernova = Headliner, takeover = Stun of the Week, mission = Showstopper bundle. Aliases spotlight/headliner/stun_of_the_week/showstopper also accepted.",
+            "enum": [
+              "launch",
+              "supernova",
+              "takeover",
+              "mission"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency you intend to pay in. Both amounts are always returned; this only selects which one is reported as `amount`.",
+            "enum": [
+              "USDC",
+              "SOL"
+            ],
+            "default": "USDC"
+          },
+          "name": {
+            "type": "string",
+            "description": "Project name (2-60 characters)."
+          },
+          "url": {
+            "type": "string",
+            "description": "The site's public https URL."
+          },
+          "tagline": {
+            "type": "string",
+            "description": "One line about what it does (10-120 characters, no links)."
+          },
+          "description": {
+            "type": "string",
+            "description": "What it is and why it matters (30-600 characters, no links)."
+          },
+          "category": {
+            "type": "string",
+            "description": "Category id.",
+            "enum": [
+              "cosmos",
+              "planet",
+              "science",
+              "learning",
+              "create",
+              "human",
+              "data",
+              "wonder"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "description": "Contact email for the order receipt and listing questions. Not published."
+          },
+          "slotId": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "description": "Headliner only: preferred sponsor slot (1-3). If busy, the next opening is assigned."
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Headliner only: preferred start date YYYY-MM-DD (booking 30+ days ahead adds 7 bonus days)."
+          },
+          "weekStart": {
+            "type": "string",
+            "description": "Stun of the Week / Showstopper only: preferred week, a date YYYY-MM-DD in that week (Monday). Must be a future week; the next free week is assigned if taken."
+          },
+          "ref": {
+            "type": "string",
+            "description": "Optional referral code from register_referrer (e.g. sl-ab12cd34). If the order is paid, that referrer is credited a 3 USDC bounty. Other attribution ids are stored but earn nothing."
+          }
+        },
+        "required": [
+          "tier",
+          "name",
+          "url",
+          "tagline",
+          "description",
+          "category",
+          "email"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "verify_order",
+      "description": "Submit the Solana transaction signature for an order. StunList reads the transaction on-chain, checks it carries the order's reference and paid at least the quoted amount to the payTo wallet, then screens the site again and publishes the listing and placements immediately. Identify the order with the token from create_order (preferred) or its reference.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Order token returned by create_order."
+          },
+          "reference": {
+            "type": "string",
+            "description": "Order reference public key returned by create_order (alternative to token)."
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Order id (informational; token or reference is required)."
+          },
+          "signature": {
+            "type": "string",
+            "description": "Solana transaction signature (base58)."
+          }
+        },
+        "required": [
+          "signature"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_order_status",
+      "description": "Check an order's status (pending, paid, live, needs_review, expired). If the order is still pending, this also looks on-chain for a payment carrying the order's reference and settles it automatically, so polling this after paying works without verify_order. Use the token from create_order for full details, or the reference for status only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Order token returned by create_order."
+          },
+          "reference": {
+            "type": "string",
+            "description": "Order reference public key (alternative to token)."
+          },
+          "orderId": {
+            "type": "string",
+            "description": "Order id (informational)."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "register_referrer",
+      "description": "Recommend StunList to builders and earn USDC per paid placement. Register a payout wallet (a Solana address, or a Base 0x address) and get a ref code. Pass the code as `ref` on x402 /x402/spotlight, create_order or /advertise?ref=. Each paid order carrying it earns a flat 3 USDC commission to that wallet on its own chain, paid automatically on-chain in USDC when the referred order is verified, usually within minutes; the payout tx is shown in your referral status (get_referral_status). Self-referrals and refunded orders are void. Registering the same wallet again returns the same code. Free, no auth.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "wallet": {
+            "type": "string",
+            "description": "Payout wallet: a Solana address (USDC on Solana) or a Base address 0x... (USDC on Base)."
+          },
+          "chain": {
+            "type": "string",
+            "description": "Optional; detected from the address.",
+            "enum": [
+              "solana",
+              "base"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional: your agent or builder name."
+          },
+          "contact": {
+            "type": "string",
+            "description": "Optional contact email or handle for payout questions. Not published."
+          },
+          "website": {
+            "type": "string",
+            "description": "Optional: your site or agent page."
+          }
+        },
+        "required": [
+          "wallet"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_referral_status",
+      "description": "Look up a referral code: paid referrals so far, USDC owed and USDC already paid out, and each commission with its payout status and on-chain payout tx. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "description": "Your referral code, e.g. sl-ab12cd34."
+          }
+        },
+        "required": [
+          "ref"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_dispatch",
+      "description": "Recent issues of The StunList Dispatch, StunList's weekly write-ups of remarkable sites. Pass `issue` for one full issue with its write-ups. Read-only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Issue number for the full issue."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "source": {
+    "type": "registry",
+    "registry": "registry.modelcontextprotocol.io",
+    "name": "com.stunlist/stunlist",
+    "version": "1.1.0",
+    "remoteUrl": "https://stunlist.com/mcp",
+    "publishedAt": "2026-11-24T18:01:26.196973Z",
+    "fetchedAt": "2026-11-25T11:03:46.215Z",
+    "toolsSha256": "918db3f19b3b8234e194403115b74d3b2f1da3cb60fe262ce5066533d7a82f35"
+  }
+}

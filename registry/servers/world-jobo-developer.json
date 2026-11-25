@@ -1,0 +1,802 @@
+{
+  "$schema": "../schema.json",
+  "name": "world.jobo/developer",
+  "title": "Jobo Developer",
+  "category": "Design, UI & 3D Media",
+  "description": "Look up Jobo company ids, occupations and filter values while you build on the Jobo jobs API.",
+  "tools": [
+    {
+      "name": "find_companies",
+      "description": "Resolve a company name or website domain to its Jobo company ids. Prefix match on the name or the domain (2+ characters). Returns each company's ids, domain, HQ country (ISO 3166-1 alpha-2) and live job count, companies with live jobs first. Use it when the integration you are writing filters jobs by employer: store the ids, not the name, because a name also matches every other company called that. One company has one id per careers board, so put every id it returns into the `companies` filter (or `exclude_companies`). Needs the Jobo API key in this server's `Authorization: Bearer` header; a sandbox key (jbe_test_…) cannot use it. Free: rate limited, never billed.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Start of the company name or website domain, e.g. 'stripe' or 'stripe.com'."
+          },
+          "limit": {
+            "description": "Most companies to return, 1–20 (default 8).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "name": "find_filter_values",
+      "description": "List the accepted values of one open-vocabulary search filter, with live job counts, so the code you write sends a value the index holds. Filters match exactly: an unknown value returns zero jobs, not an error. Facets: sources, skills, industries, company_categories, job_categories, job_subcategories, occupations. `sources` are ATS ids (greenhouse, lever_co); `job_categories` and `job_subcategories` are the occupation taxonomy's two upper levels; `occupations` returns occupation ids for the `occupation_ids` filter. Without `q`: the values with the most live jobs. With `q`: the values that start with it; for `occupations`, `q` is a role name ('registered nurse') matched against occupation, subcategory and category names. Needs the Jobo API key in this server's `Authorization: Bearer` header; a sandbox key (jbe_test_…) cannot use it. Free: rate limited, never billed.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "facet": {
+            "type": "string",
+            "enum": [
+              "sources",
+              "skills",
+              "industries",
+              "company_categories",
+              "job_categories",
+              "job_subcategories",
+              "occupations"
+            ],
+            "description": "Which filter's values to list."
+          },
+          "q": {
+            "description": "For occupations, words of the role name ('nurse', 'backend developer'). For the other facets, the start of a value ('pyth', 'soft'). Leave out for the most common values.",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Most values to return, 1–250 (default 25).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 250
+          }
+        },
+        "required": [
+          "facet"
+        ]
+      }
+    },
+    {
+      "name": "find_locations",
+      "description": "Check how a place name resolves before you put it in a request. Returns the places whose name starts with `q` (2+ characters), with city, region and country exactly as the job index stores them, the string the search `location` filter takes for each, and the `{ country, region, city }` object the feed (`POST /api/jobs/feed`) takes in `locations`. This is the free place lookup, not the billed geocoder (`GET /api/locations/geocode`), which this server never calls. Needs the Jobo API key in this server's `Authorization: Bearer` header; a sandbox key (jbe_test_…) cannot use it. Free: rate limited, never billed.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Start of a place name, e.g. 'berlin', 'san fran', 'texas'."
+          },
+          "limit": {
+            "description": "Most places to return, 1–10 (default 5).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "q"
+        ]
+      }
+    },
+    {
+      "name": "list_filters",
+      "description": "The fixed vocabularies of the Jobo jobs API: work models, employment types, experience levels, company categories, languages (ISO 639-1), sort orders, description formats and `include_fields`, plus the feed's company size and revenue bands. Use them for enums, constants and validation in the code you write. Values are lowercase and canonical: send them verbatim. Jobs come back with display-cased values (`Remote`, `Full-time`), which are not valid filter input. No API key and no network call: it answers from the filter contract this server ships with. For open vocabularies (companies, skills, industries, occupations, sources, places) use the `find_` tools.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {}
+      }
+    },
+    {
+      "name": "describe_search_filters",
+      "description": "The whole job-search filter contract, one entry per filter: its name, type, the values it accepts or the lookup tool that supplies them, its `exclude_` twin, where it goes in the `POST /api/jobs/search` JSON body with an example fragment, and the matching `jobo` CLI flag. Read it before writing request-building code or types: several filters are spelled differently in the body (`work_model` is `work_models`, `q` is `queries`), and include/exclude filters are nested objects, where a flat `skills_exclude` key is ignored without an error. No API key and no network call: it answers from the filter contract this server ships with.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {}
+      }
+    },
+    {
+      "name": "build_search_request",
+      "description": "Check a set of search filters against the contract and return the exact request for them: method, URL, headers and JSON body for `POST /api/jobs/search`, a ready-to-run `curl` command (bash, zsh), the same request for PowerShell, and the equivalent `jobo` CLI command. The commands read the key from the `JOBO_API_KEY` environment variable; the headers show where it goes, not a value to paste. It does not send the request: no network call, no key, no cost. Sending the request it returns is billed per job returned, and `page_size` is the most one call can bill. Parameters are the contract's filter names, not the body's field names: pass `work_model`, not `work_models`. An unknown name, a wrong type or a value outside a fixed vocabulary is reported with the nearest valid one, and no request is built. Values of open vocabularies cannot be checked offline; the result names the lookup tool to confirm each with.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "Free-text query matched against job title and, unless disabled, description. Wrap a phrase in double quotes for an exact title match; prefix a term with \"-\" to exclude it. Body field: `queries`."
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Free-form location, e.g. \"Berlin, Germany\" or \"Remote\". Look values up with `find_locations`. A string, or an array for several places. Body field: `locations`."
+          },
+          "sources": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Restrict to specific ATS sources, e.g. greenhouse, lever_co, ashby. Look values up with `find_filter_values` (facet sources). An array; one string is one value. Body field: `sources`."
+          },
+          "companies": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Only jobs at these companies. Each value is a Jobo company id (GUID), a website domain (\"stripe.com\") or a whole company name (\"Stripe\"); ids are exact, names also match every other company of that name. Look values up with `find_companies`. An array; one string is one value. Body field: `companies.include`."
+          },
+          "exclude_companies": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out jobs at these companies (ids, domains or whole names, as for companies). Look values up with `find_companies`. An array; one string is one value. Body field: `companies.exclude`."
+          },
+          "work_model": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Remote, hybrid or onsite. One of: remote, hybrid, onsite. An array; one string is one value. Body field: `work_models`."
+          },
+          "employment_type": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Full-time, part-time, contract, internship, freelance or temporary. One of: full-time, part-time, contract, internship, freelance, temporary. An array; one string is one value. Body field: `employment_types`."
+          },
+          "experience_level": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Intern through executive. One of: intern, entry, mid, senior, lead, executive. An array; one string is one value. Body field: `experience_levels`."
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Description language, as ISO 639-1 codes (\"en\", \"de\"). Names and locales are mapped server-side. An array; one string is one value. Body field: `languages`."
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Require one or more skills, e.g. Python, Kubernetes. Look values up with `find_filter_values` (facet skills). An array; one string is one value. Body field: `skills.include`."
+          },
+          "exclude_skills": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out jobs asking for any of these skills. Look values up with `find_filter_values` (facet skills). An array; one string is one value. Body field: `skills.exclude`."
+          },
+          "industries": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Restrict to companies in specific industries. Look values up with `find_filter_values` (facet industries). An array; one string is one value. Body field: `industries.include`."
+          },
+          "exclude_industries": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out companies in any of these industries. Look values up with `find_filter_values` (facet industries). An array; one string is one value. Body field: `industries.exclude`."
+          },
+          "company_categories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Hiring company's business model, e.g. b2b, saas, marketplace. Known values: b2b, b2c, b2b2c, b2g, saas, marketplace, e-commerce, service-provider, hardware, agency, nonprofit, government, education. Look values up with `find_filter_values` (facet company_categories). An array; one string is one value. Body field: `company_categories.include`."
+          },
+          "exclude_company_categories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out companies with any of these business models, e.g. agency. Known values: b2b, b2c, b2b2c, b2g, saas, marketplace, e-commerce, service-provider, hardware, agency, nonprofit, government, education. Look values up with `find_filter_values` (facet company_categories). An array; one string is one value. Body field: `company_categories.exclude`."
+          },
+          "job_categories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Occupation category names, e.g. \"Healthcare\" (GET /api/occupations lists them). Case-insensitive. Look values up with `find_filter_values` (facet job_categories). An array; one string is one value. Body field: `job_categories.include`."
+          },
+          "exclude_job_categories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out jobs in these occupation categories. Look values up with `find_filter_values` (facet job_categories). An array; one string is one value. Body field: `job_categories.exclude`."
+          },
+          "job_subcategories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Occupation subcategory names, e.g. \"Nursing\". Case-insensitive. Look values up with `find_filter_values` (facet job_subcategories). An array; one string is one value. Body field: `job_subcategories.include`."
+          },
+          "exclude_job_subcategories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out jobs in these occupation subcategories. Look values up with `find_filter_values` (facet job_subcategories). An array; one string is one value. Body field: `job_subcategories.exclude`."
+          },
+          "occupation_ids": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Occupation ids, e.g. \"esco:8d3e8aaa-791b-4c75-a465-f3f827028f50\" or \"jobo:backend-developer\". Ids, not names: names can change. Look values up with `find_filter_values` (facet occupations). An array; one string is one value. Body field: `occupation_ids.include`."
+          },
+          "exclude_occupation_ids": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out jobs with these occupation ids. Look values up with `find_filter_values` (facet occupations). An array; one string is one value. Body field: `occupation_ids.exclude`."
+          },
+          "min_salary_usd": {
+            "type": "integer",
+            "description": "Only jobs whose advertised compensation meets this floor. Body field: `salary_usd.min`."
+          },
+          "max_salary_usd": {
+            "type": "integer",
+            "description": "Only jobs whose advertised compensation is at or below this ceiling. Body field: `salary_usd.max`."
+          },
+          "posted_after": {
+            "type": "string",
+            "description": "Only jobs posted by the employer on or after this timestamp. ISO 8601. Body field: `posted_after`."
+          },
+          "posted_before": {
+            "type": "string",
+            "description": "Only jobs posted by the employer on or before this timestamp. ISO 8601. Body field: `posted_before`."
+          },
+          "discovered_after": {
+            "type": "string",
+            "description": "Only jobs Jobo first indexed on or after this timestamp. This is the field polling triggers advance; prefer it over posted_after for incremental sync. ISO 8601. Body field: `discovered_after`."
+          },
+          "discovered_before": {
+            "type": "string",
+            "description": "Only jobs Jobo first indexed on or before this timestamp. ISO 8601. Body field: `discovered_before`."
+          },
+          "search_description": {
+            "type": "boolean",
+            "description": "Match the query against full descriptions as well as titles. Defaults to true. Body field: `search_description`."
+          },
+          "sort": {
+            "type": "string",
+            "description": "relevance (default), discovered_asc or discovered_desc. The discovered orders key on the first-indexed time and keep pages stable. One of: relevance, discovered_asc, discovered_desc. Body field: `sort`."
+          },
+          "description_format": {
+            "type": "string",
+            "description": "markdown (default, as stored), html, or the enhanced description (beta) as enhanced or enhanced_html. One of: markdown, html, enhanced, enhanced_html. Body field: `description_format`."
+          },
+          "page": {
+            "type": "integer",
+            "description": "1-based page number. Default 1."
+          },
+          "page_size": {
+            "type": "integer",
+            "description": "Jobs per page, 1–100 (API default 25). The most the request can bill: every job returned is billed."
+          },
+          "include_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Heavy job fields to return. Omitted: all of them. An empty array: the core fields only, which keeps responses small. The price is the same either way. Values: description, summary, qualifications, responsibilities, benefits."
+          },
+          "include_facets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Facet counts to return alongside the jobs. Omitted: the API's default set (work_model, experience_level, employment_type, sources). An empty array: none. It is a list of facet names, not a boolean. Values: work_model, experience_level, employment_type, sources, industries, skills, countries, company_categories, job_categories, job_subcategories, occupations."
+          }
+        },
+        "additionalProperties": {}
+      }
+    },
+    {
+      "name": "describe_signal_filters",
+      "description": "The Hiring Signals contract for `GET /api/signals` and `GET /api/companies/{id}/signals`: every filter with its type, accepted values or range and what it matches, which filters the per-company endpoint takes, the focus-filter rule (which types a request with `functions`, `roles` or `job_regions` can return), paging and the two orders (`sort`), what a read costs, and how to poll for new signals in stored order (`sort=created_asc` with `created_after`) so each is read once. A signal is one event at one company, detected from its job postings. Read it before writing code that reads signals: each signal returned is billed at ten times the price of a job, and a signal read again is billed again. No API key and no network call: it answers from the filter contract this server ships with.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {}
+      }
+    },
+    {
+      "name": "build_signals_request",
+      "description": "Check a set of Hiring Signals filters against the contract and return the exact request: method, URL with its query string, headers, a `curl` command (bash, zsh), the same request for PowerShell, and the `jobo signals` command. Pass `company_id` for one company's endpoint. The commands read the key from the `JOBO_API_KEY` environment variable. It does not send the request: no network call, no key, no cost. Sending it is billed per signal returned, at ten times the price of a job, and `limit` is the most one call can bill. An unknown filter, a value outside a fixed vocabulary, a list value with a comma, more than 100 values, a number out of range, a date in the wrong shape, a filter the per-company endpoint does not take or a `sort` other than detected_desc and created_asc is reported, and no request is built. To poll, pass `sort: \"created_asc\"` and `created_after`; it warns when one is set without the other.",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "types": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Only these kinds of signal, e.g. hiring_surge, new_country, leadership_hire. Leave empty for every kind. One of: hiring_surge, new_function, new_country, leadership_hire, new_skill, hiring_slowdown, first_role, new_technology, function_surge, new_city, hard_to_fill, leadership_role_closed, hiring_freeze, hiring_resumed. An array; no value may contain a comma; at most 100 values."
+          },
+          "domains": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Only signals at these companies, by website domain, e.g. \"stripe.com\". At most 100. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "company_ids": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Only signals at these companies, by Jobo company id (a GUID). At most 100. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "exclude_domains": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Leave out these companies, by website domain, e.g. your existing customers. At most 100. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "countries": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Countries the companies are headquartered in, as two-letter codes, e.g. \"US\", \"DE\". An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "company_sizes": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Headcount bands of the companies. One of: 1-10, 11-50, 51-200, 201-500, 501-1000, 1001-5000, 5001-10000, 10001+. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "industries": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Industries of the companies, matched against the primary industry and the industry list. A value cannot contain a comma. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "categories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Company categories, as returned in company.categories, e.g. SaaS. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "funding_stages": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Latest funding round of the companies, as returned in company.funding_stage, e.g. \"Seed\", \"Series A\". An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "founded_after": {
+            "type": "integer",
+            "description": "Only companies founded in this year or later. 1800 to 2100. Not taken with `company_id`."
+          },
+          "exclude_agencies": {
+            "type": "boolean",
+            "description": "Leave out staffing agencies, whose postings are their clients' hiring. Not taken with `company_id`."
+          },
+          "functions": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Job categories the signal must be about, e.g. \"Technology\", \"Sales\". A focus filter. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "roles": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Words or phrases to look for in the job title or occupation behind the signal, e.g. \"data engineer\". At least 2 characters each. A focus filter. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "seniority": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Seniority of the role behind the signal. A focus filter. One of: junior, mid, senior, director, vp, c_level, executive. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "technologies": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Named tools the signal must be about, e.g. \"Snowflake\". A focus filter, combined with skills and technology categories. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Named skills the signal must be about. A focus filter, combined with technologies. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "technology_categories": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Every tool in a category, as returned in details.technology_category, e.g. \"CRM\". A focus filter. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "job_countries": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Countries the jobs are in (not the company's headquarters), as two-letter codes. A focus filter. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "job_regions": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "States, provinces or regions the jobs are in, e.g. \"Texas\". A focus filter. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "job_cities": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Cities the jobs are in, e.g. \"Austin\". A focus filter; only new_city and hard_to_fill record a city. An array; no value may contain a comma; at most 100 values. Not taken with `company_id`."
+          },
+          "min_strength": {
+            "type": "integer",
+            "description": "Only signals at least this strong. Strength runs from 1 to 100 and compares signals of the same type. 1 to 100."
+          },
+          "min_new_jobs": {
+            "type": "integer",
+            "description": "Only hiring_surge and function_surge signals of at least this many new jobs. Other types are not affected. 1 to 10000. Not taken with `company_id`."
+          },
+          "min_days_open": {
+            "type": "integer",
+            "description": "Only hard_to_fill signals for jobs open at least this many days. Other types are not affected. 1 to 365. Not taken with `company_id`."
+          },
+          "reposted_only": {
+            "type": "boolean",
+            "description": "Only hard_to_fill signals for jobs posted again after closing. Other types are not affected. Not taken with `company_id`."
+          },
+          "detected_after": {
+            "type": "string",
+            "description": "Earliest detection day, inclusive, as yyyy-MM-dd."
+          },
+          "detected_before": {
+            "type": "string",
+            "description": "Latest detection day, inclusive, as yyyy-MM-dd."
+          },
+          "created_after": {
+            "type": "string",
+            "description": "Only signals first stored after this instant, exclusive. To read what is new, read in stored order and pass the created_at of the last signal received, unchanged. ISO 8601 with seconds, e.g. 2026-11-12T09:30:00Z."
+          },
+          "company_id": {
+            "type": "string",
+            "description": "One Jobo company id (a GUID): the request then reads `GET /api/companies/{id}/signals`, which takes only types, min_strength, detected_after, detected_before, created_after. Look the id up with `find_companies`."
+          },
+          "sort": {
+            "type": "string",
+            "enum": [
+              "detected_desc",
+              "created_asc"
+            ],
+            "description": "The order: `detected_desc` (default, newest detection day first) or `created_asc` (the order signals were stored in, oldest first). Poll in `created_asc` with `created_after` set to the last `created_at` read. Both endpoints take it."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Signals per page, 1–200 (API default 50). The most the request can bill: every signal returned is billed."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "The previous page's `next_cursor`, unchanged, with the same `sort` and filters: a cursor belongs to the sort it was issued under."
+          }
+        },
+        "additionalProperties": {}
+      }
+    }
+  ],
+  "source": {
+    "type": "registry",
+    "registry": "registry.modelcontextprotocol.io",
+    "name": "world.jobo/developer",
+    "version": "0.4.0",
+    "remoteUrl": "https://dev-mcp.jobo.world/mcp",
+    "publishedAt": "2026-11-24T17:31:23.51119Z",
+    "fetchedAt": "2026-11-25T11:03:46.215Z",
+    "toolsSha256": "8f62fdbdda73e836a8b1451b496c6e3a61ff4441d871b33c2d0fc8555b6595b9"
+  }
+}

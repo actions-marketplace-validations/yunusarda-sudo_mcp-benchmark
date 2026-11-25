@@ -1,0 +1,1647 @@
+{
+  "$schema": "../schema.json",
+  "name": "com.andque/strata-b2a-mcp",
+  "title": "STRATA & TrashPan B2A Public Data, 5.86M JP KYB, 44.2k Domains, EDINET, LEI, OFAC & Golf EV MCP",
+  "category": "Other",
+  "description": "Zero-PII B2A MCP: 16 streams, 18 3-word tools (+143 aliases), 5.86M JP KYB, LEI, OFAC & Golf EV",
+  "repository": "https://github.com/andquemori/strata-b2a-mcp",
+  "tools": [
+    {
+      "name": "list_data_streams",
+      "description": "Free ($0, no auth), read-only, idempotent catalog listing all 16 B2A streams, pricing, licenses, and schemas. Pass category or streamId (default category=\"all\", includeLegacyAliases=false); returns stream entries ordered by catalog index with SHA-256 provenance. Note: For stock checks, use probe_stream_inventory instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "all",
+              "corporate_kyb_compliance",
+              "finance_macro_patents",
+              "geospatial_real_estate_medical",
+              "web_jobs_trends_golf_market"
+            ],
+            "default": "all",
+            "description": "Optional B2A domain category filter (\"all\" returns all 16 streams ordered by catalog index)."
+          },
+          "streamId": {
+            "type": "string",
+            "enum": [
+              "ansr-golf-ev-engine",
+              "ats-jobs",
+              "cyber-kev-status",
+              "domain-intel",
+              "google-trends",
+              "jp-academic-biotech",
+              "jp-area-hazard-poi",
+              "jp-entity-reputation",
+              "jp-foreclosure-bit",
+              "jp-macro-edinet",
+              "jp-medical-navii",
+              "jp-patent-b2a",
+              "jp-procurement-giteki",
+              "jp-registry-diff",
+              "jp-tcg-index",
+              "jp-wholesale-macro"
+            ],
+            "description": "Optional canonical B2A stream slug from the 16-stream enum; when provided, returns the full inputSchema, outputSchema, and parameter defaults for that stream."
+          },
+          "includeLegacyAliases": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, includes backward-compatible Phase-7 and specialized verb tool aliases for each stream."
+          }
+        }
+      }
+    },
+    {
+      "name": "probe_stream_inventory",
+      "description": "Free ($0, no auth), read-only, idempotent pre-check of record existence and 24h freshness across 16 streams. Pass streamId with corporateNumber, domain, lei, or boardSlug (default streamId=\"domain-intel\", limit=25); returns stock status ordered by target match. Note: For stream schemas, use list_data_streams instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "streamId": {
+            "type": "string",
+            "enum": [
+              "ansr-golf-ev-engine",
+              "ats-jobs",
+              "cyber-kev-status",
+              "domain-intel",
+              "google-trends",
+              "jp-academic-biotech",
+              "jp-area-hazard-poi",
+              "jp-entity-reputation",
+              "jp-foreclosure-bit",
+              "jp-macro-edinet",
+              "jp-medical-navii",
+              "jp-patent-b2a",
+              "jp-procurement-giteki",
+              "jp-registry-diff",
+              "jp-tcg-index",
+              "jp-wholesale-macro"
+            ],
+            "default": "domain-intel",
+            "description": "Target B2A stream identifier from the 16-stream enum to pre-check record availability and 24h freshness."
+          },
+          "targetKey": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Optional canonical target key (e.g. \"domain:nttdata.com\", \"ats:greenhouse:layerx\", \"trends:US:mcp\")."
+          },
+          "domain": {
+            "type": "string",
+            "maxLength": 253,
+            "description": "Domain name to check when probing domain posture or corporate registry (e.g. \"nttdata.com\", \"preferred.jp\")."
+          },
+          "domains": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "string",
+              "maxLength": 253
+            },
+            "description": "Batch of 1 to 25 corporate domains when probing domain posture or corporate registry."
+          },
+          "boardSlug": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Company ATS board slug when probing ats-jobs (e.g. \"stripe\", \"layerx\")."
+          },
+          "ats": {
+            "type": "string",
+            "enum": [
+              "greenhouse",
+              "lever",
+              "ashby"
+            ],
+            "default": "greenhouse",
+            "description": "ATS platform when probing ats-jobs (\"greenhouse\", \"lever\", or \"ashby\")."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Search keyword when probing search trends or Japanese public data streams."
+          },
+          "geo": {
+            "type": "string",
+            "maxLength": 2,
+            "pattern": "^[A-Za-z]{2}$",
+            "default": "US",
+            "description": "2-letter ISO country code when probing google-trends (e.g. \"US\", \"JP\")."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "lookup",
+              "batch",
+              "screen",
+              "filter",
+              "gleif_lei",
+              "ofac_sanctions",
+              "gov_qualification",
+              "edinet_gc_amendments",
+              "ev",
+              "sg",
+              "dispersion",
+              "strategy",
+              "course_search",
+              "hole_strategy"
+            ],
+            "description": "Mode when probing jp-entity-reputation (\"lookup\", \"batch\", \"screen\", \"filter\", \"gleif_lei\", \"ofac_sanctions\", \"gov_qualification\", or \"edinet_gc_amendments\") or ansr-golf-ev-engine (\"ev\", \"sg\", \"dispersion\", \"strategy\", \"course_search\", or \"hole_strategy\")."
+          },
+          "qualificationGrade": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "description": "Exact Unified Government Qualification grade (\"A\", \"B\", \"C\", or \"D\") when probing mode=\"gov_qualification\"."
+          },
+          "minQualificationGrade": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "description": "Minimum Unified Government Qualification grade (\"A\" highest through \"D\")."
+          },
+          "companyScale": {
+            "type": "string",
+            "enum": [
+              "large",
+              "sme",
+              "micro",
+              "other"
+            ],
+            "description": "Company scale (\"large\", \"sme\", \"micro\", or \"other\") when probing mode=\"gov_qualification\"."
+          },
+          "edinetCode": {
+            "type": "string",
+            "maxLength": 6,
+            "pattern": "^E[0-9]{5}$",
+            "description": "6-character FSA EDINET submitter code (e.g. \"E02144\") when probing mode=\"edinet_gc_amendments\" or securities filings."
+          },
+          "docId": {
+            "type": "string",
+            "maxLength": 8,
+            "pattern": "^S[0-9A-Za-z]{7}$",
+            "description": "8-character EDINET filing document ID (e.g. \"S100ABCD\") when probing mode=\"edinet_gc_amendments\"."
+          },
+          "goingConcernOnly": {
+            "type": "boolean",
+            "description": "When true in mode=\"edinet_gc_amendments\", probes filings with statutory Going Concern notes or material events."
+          },
+          "amendmentsOnly": {
+            "type": "boolean",
+            "description": "When true in mode=\"edinet_gc_amendments\", probes amended securities/quarterly/semi-annual reports."
+          },
+          "corporateNumber": {
+            "type": "string",
+            "maxLength": 13,
+            "pattern": "^[0-9]{13}$",
+            "description": "13-digit Japanese Corporate Number (NTA Mod-9 validated, e.g. \"1180301018771\") when probing corporate registry, recalls, or tenders."
+          },
+          "corporateNumbers": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "string",
+              "maxLength": 13
+            },
+            "description": "Batch of 1 to 25 13-digit Japanese Corporate Numbers for free stock probing."
+          },
+          "lei": {
+            "type": "string",
+            "maxLength": 20,
+            "pattern": "^[A-Za-z0-9]{20}$",
+            "description": "20-character ISO 17442 LEI (Mod 97-10 validated, e.g. \"5493006W3QUS5LMH6R84\") when probing mode=\"gleif_lei\"."
+          },
+          "leis": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "string",
+              "maxLength": 20
+            },
+            "description": "Batch of 1 to 25 20-character ISO 17442 LEI codes."
+          },
+          "walletAddress": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Blockchain wallet address (e.g. \"0x...\", \"TNiq9AXBp9EjUqhDhrwrfvAA8U3GUQZH81\") when probing mode=\"ofac_sanctions\"."
+          },
+          "walletAddresses": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "description": "Batch of 1 to 25 blockchain wallet addresses for OFAC dataset availability probing."
+          },
+          "entityName": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Organization or corporate legal name when probing mode=\"ofac_sanctions\"."
+          },
+          "entityNames": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 25,
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "description": "Batch of 1 to 25 organization or corporate legal names when probing mode=\"ofac_sanctions\"."
+          },
+          "assetSymbol": {
+            "type": "string",
+            "enum": [
+              "ARB",
+              "BCH",
+              "BSC",
+              "BTC",
+              "DASH",
+              "ETH",
+              "LTC",
+              "SOL",
+              "TON",
+              "TRX",
+              "USDC",
+              "USDT",
+              "XBT",
+              "XLM",
+              "XMR",
+              "XRP",
+              "ZEC"
+            ],
+            "description": "Optional digital currency ticker filter in mode=\"ofac_sanctions\" across 600 organization-linked SDN wallets (e.g. \"TRX\", \"ETH\", \"XBT\", \"USDT\"). Free probes return dataset availability only."
+          },
+          "includeWeakAliases": {
+            "type": "boolean",
+            "default": false,
+            "description": "Optional flag for paid OFAC screening (weak AKAs excluded by default unless true; when true, weak AKAs are tagged with matchedVia=\"weak_aka_alias\" and akaStrength=\"weak\"). Free probes return dataset availability only."
+          },
+          "strictExcludeUnobserved": {
+            "type": "boolean",
+            "default": false,
+            "description": "In mode=\"screen\" / \"filter\", controls unknown/unobserved handling for exclusion filters (excludeGoingConcern, excludeRecentEdinetAmendments, excludeLapsedLei). Defaults to false (retains unobserved corporations with unobservedOrExcludedScopes[] tags; when true, unobserved corporations are also excluded)."
+          },
+          "excludeGoingConcern": {
+            "type": "boolean",
+            "description": "In mode=\"screen\" / \"filter\", excludes corporations with active EDINET Going Concern notes or material events."
+          },
+          "excludeRecentEdinetAmendments": {
+            "type": "boolean",
+            "description": "In mode=\"screen\" / \"filter\", excludes corporations that filed recent amended securities reports on EDINET."
+          },
+          "requireGleifLei": {
+            "type": "boolean",
+            "description": "In mode=\"screen\" / \"filter\", requires the corporation to hold a registered GLEIF LEI."
+          },
+          "excludeLapsedLei": {
+            "type": "boolean",
+            "description": "In mode=\"screen\" / \"filter\", excludes corporations whose GLEIF LEI status is LAPSED."
+          },
+          "lapsedOnly": {
+            "type": "boolean",
+            "description": "When true in mode=\"gleif_lei\", filters for LAPSED LEI registrations."
+          },
+          "hasBicOnly": {
+            "type": "boolean",
+            "description": "When true in mode=\"gleif_lei\", filters for entities with SWIFT BIC codes."
+          },
+          "prefectureCode": {
+            "type": "string",
+            "maxLength": 2,
+            "pattern": "^(0[1-9]|[1-3][0-9]|4[0-7])$",
+            "description": "2-digit JIS prefecture code across all 47 Japanese prefectures (\"01\" to \"47\", e.g. \"13\" for Tokyo, \"27\" for Osaka)."
+          },
+          "prefecture": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Japanese prefecture name or 2-digit JIS code across all 47 prefectures (e.g. \"北海道\", \"東京都\", \"大阪府\", \"13\")."
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Facility/station/golf-course query string when probing spatial or ANSR golf streams."
+          },
+          "holeNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 18,
+            "description": "Optional golf hole number (1-18) when probing ansr-golf-ev-engine."
+          },
+          "cveId": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^CVE-[0-9]{4}-[0-9]{4,8}$",
+            "description": "CVE identifier (e.g. \"CVE-2024-0001\") when probing cyber advisories."
+          },
+          "secCode": {
+            "type": "string",
+            "maxLength": 5,
+            "pattern": "^[0-9A-Za-z]{4,5}$",
+            "description": "4- or 5-digit Japanese securities code when probing securities filings or mode=\"edinet_gc_amendments\"."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "default": 25,
+            "description": "Optional row scan limit (1 to 25, default 25; free probes cap internal scan budget at 25 rows)."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_domain_posture",
+      "description": "Read-only, idempotent live query of DNS, RDAP, SPF/DMARC score, TTFB, stack, and AI tier for 1-5 domains (API key or x402; 24h). Pass domains and includeEmailPosture (default includeEmailPosture=true, limit=5, offset=0); returns domain records ordered by input index. Note: For entity KYB, use query_corporate_registry instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 253
+            },
+            "minItems": 1,
+            "maxItems": 5,
+            "description": "List of 1 to 5 domain names to inspect per request (e.g. [\"cloudflare.com\", \"andque.com\"]). Requests with 6+ domains are rejected with HTTP 400."
+          },
+          "includeEmailPosture": {
+            "type": "boolean",
+            "default": true,
+            "description": "Include SPF/DMARC parsing and deliverability scoring ($0.008 event)"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 5,
+            "description": "Maximum domain records to return per call (1 to 5, default 5)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through result sets deterministically."
+          }
+        },
+        "required": [
+          "domains"
+        ]
+      }
+    },
+    {
+      "name": "query_ats_jobs",
+      "description": "Read-only, idempotent query of Greenhouse, Lever, and Ashby job openings and daily hiring deltas (API key or x402; daily). Pass boards or ats with boardSlug (default includeDelta=false, limit=100, offset=0); returns job records ordered by update time descending. Note: For employer KYB, use query_corporate_registry instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "boards": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "properties": {
+                "ats": {
+                  "type": "string",
+                  "enum": [
+                    "greenhouse",
+                    "lever",
+                    "ashby"
+                  ],
+                  "description": "ATS platform provider (\"greenhouse\", \"lever\", or \"ashby\")."
+                },
+                "boardSlug": {
+                  "type": "string",
+                  "maxLength": 120,
+                  "description": "Company ATS board slug (e.g. \"stripe\", \"layerx\", \"openai\")."
+                }
+              },
+              "required": [
+                "boardSlug"
+              ]
+            },
+            "description": "List of 1 to 20 official ATS job boards to query and compute SHA-256 deltas for."
+          },
+          "ats": {
+            "type": "string",
+            "enum": [
+              "greenhouse",
+              "lever",
+              "ashby"
+            ],
+            "default": "greenhouse",
+            "description": "Single-board ATS platform (\"greenhouse\", \"lever\", or \"ashby\", default \"greenhouse\")."
+          },
+          "boardSlug": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Single-board company ATS slug (e.g. \"stripe\", \"layerx\", \"openai\")."
+          },
+          "includeDescriptionText": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, includes normalized plain-text job description excerpts."
+          },
+          "includeDelta": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, computes daily SHA-256 per-job delta status (new, changed, removed, unchanged)."
+          },
+          "onlyDeltaChanges": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, filters output to only newly posted, modified, or removed openings."
+          },
+          "maxJobsPerBoard": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum job postings returned per ATS board (1 to 500)."
+          },
+          "maxJobs": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "description": "Maximum total job postings returned across the request (1 to 500)."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Result row limit alias (1 to 500, default 100)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          },
+          "since": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "Optional ISO-8601 timestamp (e.g. \"2026-11-22T00:00:00Z\") to replay all job delta events (new/changed/removed) observed since that timestamp. Defaults to a 24-hour retention window so multiple customers receive identical daily deltas."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_search_trends",
+      "description": "Read-only, idempotent live query of Google Autocomplete related keywords and Google Trends daily topics by country (API key or x402; 24h). Pass keywords with geo code (default geo=\"US\", limit=25, offset=0); returns trend records ordered by traffic rank descending. Note: For domain DNS, use query_domain_posture instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "keywords": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 5,
+            "items": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "description": "List of 1 to 5 seed keywords to query for related searches and daily trend matches (e.g. [\"mcp server\", \"cloudflare\"])."
+          },
+          "geo": {
+            "type": "string",
+            "maxLength": 2,
+            "pattern": "^[A-Za-z]{2}$",
+            "default": "US",
+            "description": "2-letter ISO country code for localized trends (e.g. \"US\", \"JP\", \"GB\")."
+          },
+          "includeRelatedQueries": {
+            "type": "boolean",
+            "default": true,
+            "description": "When true, returns ranked Google Autocomplete related queries for each keyword."
+          },
+          "includeTrendingNow": {
+            "type": "boolean",
+            "default": true,
+            "description": "When true, includes Google Trends Daily RSS trending topics, traffic volume, and news links."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25,
+            "default": 25,
+            "description": "Maximum keyword trend items to return per call (1 to 25, default 25)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through result sets deterministically."
+          }
+        },
+        "required": [
+          "keywords"
+        ]
+      }
+    },
+    {
+      "name": "query_court_foreclosures",
+      "description": "Read-only, idempotent query of Supreme Court BIT foreclosure results and auction notices in 47 prefectures (API key or x402; daily). Pass stage, prefecture, or valuation bounds (default stage=\"all\", limit=50, offset=0); returns auction records ordered by opening date descending. Note: For hazards, use query_seismic_hazards instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prefecture": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Nationwide Japanese prefecture filter across all 47 prefectures (e.g. \"北海道\", \"東京都\", \"大阪府\", \"福岡県\")."
+          },
+          "municipality": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Municipality or ward substring filter (e.g. \"千代田区\", \"札幌市\")."
+          },
+          "court": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "District court name filter (e.g. \"東京地方裁判所\", \"大阪地方裁判所\")."
+          },
+          "caseNumber": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Court auction case number filter (e.g. \"令和8年(ケ)\")."
+          },
+          "propertyKind": {
+            "type": "string",
+            "enum": [
+              "all",
+              "土地",
+              "戸建",
+              "区分所有",
+              "一棟"
+            ],
+            "default": "all",
+            "description": "Real estate property type (\"all\", \"土地\", \"戸建\", \"区分所有\", or \"一棟\")."
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "all",
+              "opening_results",
+              "period_announcements"
+            ],
+            "default": "all",
+            "description": "Auction stage filter: \"opening_results\" (winning bids & multiples), \"period_announcements\" (upcoming auctions), or \"all\"."
+          },
+          "minValuationYen": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000000,
+            "description": "Minimum court appraisal valuation in JPY (0 to 1,000,000,000,000)."
+          },
+          "maxValuationYen": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000000,
+            "description": "Maximum court appraisal valuation in JPY (0 to 1,000,000,000,000)."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "description": "Maximum auction records to return (1 to 200)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_regulatory_recalls",
+      "description": "Read-only, idempotent query of CAA consumer product recalls, MHLW labor guidance, and FSA warnings in 47 prefectures (API key or x402; daily). Pass category with keyword or corporateNumber (default category=\"all\", limit=50, offset=0); returns notices ordered by date descending. Note: For entity KYB, use query_corporate_registry instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "all",
+              "invoice_expirations",
+              "new_incorporations",
+              "labor_violations",
+              "fsa_warnings",
+              "kanpo_gazette",
+              "product_recalls",
+              "invoice_new_registrations",
+              "registry_changes"
+            ],
+            "default": "all",
+            "description": "Daily delta category filter across NTA registry changes, invoice expirations/registrations, MHLW labor referrals, FSA warnings, Kanpo notices, or CAA product recalls."
+          },
+          "prefecture": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Nationwide Japanese prefecture filter across all 47 prefectures (e.g. \"東京都\", \"愛知県\", \"福岡県\")."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Company name, product name, or statutory event keyword filter."
+          },
+          "corporateNumber": {
+            "type": "string",
+            "maxLength": 13,
+            "pattern": "^[0-9]{13}$",
+            "description": "13-digit Japanese Corporate Number filter (e.g. \"6010001269339\")."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 250,
+            "default": 50,
+            "description": "Maximum delta records to return (1 to 250)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_procurement_tenders",
+      "description": "Read-only, idempotent query of KKJ public tenders, contract awards, J-Grants, and MIC Giteki devices in 47 prefectures (API key or x402; daily). Pass feedType and keyword (default feedType=\"all\", limit=50, offset=0); returns tender records ordered by notice date descending. Note: For vendor grades, use query_corporate_registry instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feedType": {
+            "type": "string",
+            "enum": [
+              "all",
+              "giteki_devices",
+              "public_tenders",
+              "procurement_awards",
+              "subsidies"
+            ],
+            "default": "all",
+            "description": "Intelligence feed filter: \"giteki_devices\" (MIC wireless/IoT certifications), \"public_tenders\" (KKJ RFPs), \"procurement_awards\" (winning contracts), \"subsidies\" (J-Grants), or \"all\"."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Device model, corporate applicant, ministry, or tender/subsidy keyword filter."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "description": "Maximum records to return (1 to 200)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_cyber_advisories",
+      "description": "Read-only, idempotent query of US CISA KEV exploited CVE advisories, ransomware flags, and due dates (API key or x402; daily). Pass cveId, keyword, or ransomwareOnly (default feedType=\"cisa_kev\", ransomwareOnly=false, limit=50, offset=0); returns advisories ordered by date added descending. Note: For DNS, use query_domain_posture instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feedType": {
+            "type": "string",
+            "enum": [
+              "all",
+              "cisa_kev",
+              "ai_cloud_status"
+            ],
+            "default": "cisa_kev",
+            "description": "Feed filter: \"cisa_kev\" (exploited CVEs, default), \"ai_cloud_status\" (7 core AI/cloud providers), or \"all\"."
+          },
+          "cveId": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^CVE-[0-9]{4}-[0-9]{4,8}$",
+            "description": "Exact CVE ID filter (e.g. CVE-2024-3400)."
+          },
+          "ransomwareOnly": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, returns only CISA KEV vulnerabilities confirmed in ransomware campaigns."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Vendor, product, vulnerability name, or cloud provider keyword filter."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "description": "Maximum CVE/status records to return (1 to 200)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_medical_facilities",
+      "description": "Read-only, idempotent query of MHLW Navii 7,715 hospitals and clinics in 47 prefectures \"01\"-\"47\" (API key or x402; daily). Pass prefCode, keyword, or onlyWithWebsite (default onlyWithWebsite=false, limit=50, offset=0); returns facilities ordered by facility code ascending. Note: For hazards, use query_seismic_hazards instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prefCode": {
+            "type": "string",
+            "maxLength": 2,
+            "pattern": "^(0[1-9]|[1-3][0-9]|4[0-7])$",
+            "description": "2-digit JIS Prefecture Code across all 47 Japanese prefectures (\"01\" Hokkaido through \"47\" Okinawa, e.g. \"13\" for Tokyo, \"27\" for Osaka)."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Hospital/clinic official Japanese or English name keyword filter."
+          },
+          "onlyWithWebsite": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, returns only facilities with a published official website URL."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 250,
+            "default": 50,
+            "description": "Maximum medical facility records to return (1 to 250)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_securities_filings",
+      "description": "Read-only, idempotent query of FSA EDINET corporate securities and shareholding filings and MOF JGB yields (API key or x402; daily). Pass feedType with edinetCode or secCode (default feedType=\"all\", limit=40, offset=0); returns disclosures ordered by filing time descending. Note: For GC diffs, use query_corporate_registry instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feedType": {
+            "type": "string",
+            "enum": [
+              "all",
+              "edinet_filings",
+              "going_concern_and_amendments",
+              "jgb_fx_macro",
+              "diet_laws"
+            ],
+            "default": "all",
+            "description": "Financial/macro feed filter: \"edinet_filings\", \"going_concern_and_amendments\", \"jgb_fx_macro\", \"diet_laws\", or \"all\"."
+          },
+          "edinetCode": {
+            "type": "string",
+            "maxLength": 6,
+            "pattern": "^E[0-9]{5}$",
+            "description": "6-character FSA EDINET submitter code (e.g. \"E02144\")."
+          },
+          "secCode": {
+            "type": "string",
+            "maxLength": 5,
+            "pattern": "^[0-9A-Za-z]{4,5}$",
+            "description": "4- or 5-digit Japanese securities code (e.g. \"7203\" or \"72030\")."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Filer name, disclosure title, statute, or committee keyword filter."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 150,
+            "default": 40,
+            "description": "Maximum disclosure/macro records to return (1 to 150)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_patent_filings",
+      "description": "Read-only, idempotent query of Japan Patent Office (JPO API v1) corporate patent filings and release logs (API key or x402; daily). Pass corporateNumber or keyword (default feedType=\"all\", limit=50, offset=0); returns filing records ordered by application date descending. Note: For papers, use query_scientific_literature instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feedType": {
+            "type": "string",
+            "enum": [
+              "all",
+              "jpo_patents",
+              "saas_b2a_pricing_delta",
+              "enterprise_b2a_watch"
+            ],
+            "default": "all",
+            "description": "Feed filter: \"jpo_patents\" (JPO API v1 filings), \"saas_b2a_pricing_delta\" (SaaS pricing/ToS/B2A diffs), \"enterprise_b2a_watch\", or \"all\"."
+          },
+          "corporateNumber": {
+            "type": "string",
+            "maxLength": 13,
+            "pattern": "^[0-9]{13}$",
+            "description": "13-digit Japanese Corporate Number filter (e.g. \"6010001269339\")."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Patent title, applicant, SaaS company, or domain keyword filter."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "description": "Maximum patent/SaaS delta records to return (1 to 200)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_wholesale_markets",
+      "description": "Read-only, idempotent query of Toyosu and Ota wholesale produce and seafood prices and MIC e-Stat price series (API key or x402; daily). Pass feedType and commodity keyword (default feedType=\"all\", limit=50, offset=0); returns market records ordered by trade date descending. Note: For 3D hazards, use query_seismic_hazards instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feedType": {
+            "type": "string",
+            "enum": [
+              "all",
+              "wholesale_market",
+              "estat_macro"
+            ],
+            "default": "all",
+            "description": "Feed filter: \"wholesale_market\" (Toyosu/Ota produce & seafood prices), \"estat_macro\" (MIC e-Stat price & housing series), or \"all\"."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Commodity name, wholesale market item, or e-Stat statistical series keyword filter."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 50,
+            "description": "Maximum wholesale market or e-Stat records to return (1 to 200, default 50)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_golf_strategy",
+      "description": "Read-only, idempotent query of 157,480-point golf EV, Strokes Gained, dispersion, and GPS strategy across 2,005 courses in 47 prefectures (API key or x402; 24h). Pass mode with distance/lie or courseId (default mode=\"ev\", limit=10, offset=0); returns shot metrics ordered by query index. Note: For POIs, use query_seismic_hazards instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ev",
+              "sg",
+              "dispersion",
+              "strategy",
+              "course_search",
+              "hole_strategy"
+            ],
+            "default": "ev",
+            "description": "Calculation mode: \"ev\" (Shot/Putt Expected Value & lie penalties), \"sg\" (Strokes Gained between start and end states), \"dispersion\" (ShotCircle landing dispersion ellipse & 8-level benchmarks), \"strategy\" (Target EV reverse distance lookup), \"course_search\" (Search 2,005 Japanese golf facilities / 4,647 courses / 41,812 valid holes [raw 41,825 rows; 13 anomalous rows quarantined] GPS data), or \"hole_strategy\" (Hole-by-hole GPS GamePlan, SG=0 landing coordinates & tee/approach dispersion for a real course)."
+          },
+          "skillLevel": {
+            "type": "string",
+            "maxLength": 40,
+            "description": "Optional preset skill level name or code: \"World Ranker\" (W↑: 68/300y), \"National Ranker\" (G↑: 70/270y), \"Professional\" (N↑: 72/270y), \"Scratch\" (0-: 75/250y), \"Under 5\" (5↓: 78/250y), \"Single\" (S↓: 81/230y), \"80s\" (8↓: 89/200y), \"90s\" (9↓: 98/200y)."
+          },
+          "coreScore": {
+            "type": "integer",
+            "minimum": 64,
+            "maximum": 125,
+            "default": 81,
+            "description": "Player benchmark score (64 to 125). Overrides skillLevel if specified."
+          },
+          "drivingDistance": {
+            "type": "number",
+            "minimum": 180,
+            "maximum": 330,
+            "default": 230,
+            "description": "Player average driver distance in yards (rounded to nearest 10-yard band between 180 and 330)."
+          },
+          "distance": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 700,
+            "description": "[Mode \"ev\" | \"dispersion\"] Remaining distance to the pin (0 to 700, e.g. 150)."
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "yards",
+              "meters",
+              "feet"
+            ],
+            "default": "yards",
+            "description": "[Mode \"ev\" | \"dispersion\"] Distance unit (\"yards\", \"meters\", or \"feet\")."
+          },
+          "lie": {
+            "type": "string",
+            "enum": [
+              "tee",
+              "teeShot",
+              "fairway",
+              "rough",
+              "bunker",
+              "trouble",
+              "green",
+              "fringe",
+              "hole_out"
+            ],
+            "default": "fairway",
+            "description": "[Mode \"ev\" | \"dispersion\"] Current ball lie."
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "tee",
+              "approach"
+            ],
+            "default": "approach",
+            "description": "[Mode \"dispersion\"] Shot stage (\"tee\" or \"approach\")."
+          },
+          "shape": {
+            "type": "string",
+            "enum": [
+              "straight",
+              "fade",
+              "draw"
+            ],
+            "default": "straight",
+            "description": "[Mode \"dispersion\" | \"strategy\" | \"hole_strategy\"] Shot shape (\"straight\", \"fade\", or \"draw\")."
+          },
+          "start": {
+            "type": "object",
+            "description": "[Mode \"sg\"] Starting ball state before the shot (distance, unit, and lie).",
+            "properties": {
+              "distance": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 700,
+                "description": "Starting distance to the hole (0 to 700)."
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "yards",
+                  "meters",
+                  "feet"
+                ],
+                "description": "Distance unit (\"yards\", \"meters\", or \"feet\")."
+              },
+              "lie": {
+                "type": "string",
+                "enum": [
+                  "tee",
+                  "teeShot",
+                  "fairway",
+                  "rough",
+                  "bunker",
+                  "trouble",
+                  "green",
+                  "fringe",
+                  "hole_out"
+                ],
+                "description": "Starting ball lie before the shot."
+              }
+            }
+          },
+          "end": {
+            "type": "object",
+            "description": "[Mode \"sg\"] Ending ball state after the shot (use lie=\"hole_out\" or distance=0 when holed).",
+            "properties": {
+              "distance": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 700,
+                "description": "Ending distance to the hole (0 to 700)."
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "yards",
+                  "meters",
+                  "feet"
+                ],
+                "description": "Distance unit (\"yards\", \"meters\", or \"feet\")."
+              },
+              "lie": {
+                "type": "string",
+                "enum": [
+                  "tee",
+                  "teeShot",
+                  "fairway",
+                  "rough",
+                  "bunker",
+                  "trouble",
+                  "green",
+                  "fringe",
+                  "hole_out"
+                ],
+                "description": "Ending ball lie after the shot (or \"hole_out\")."
+              }
+            }
+          },
+          "penalty": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 0,
+            "description": "[Mode \"sg\"] Penalty strokes incurred on the shot (0 to 10, default 0)."
+          },
+          "isObRetee": {
+            "type": "boolean",
+            "default": false,
+            "description": "[Mode \"sg\"] True if the shot went Out-of-Bounds (OB) requiring a re-tee (SG = -2.0)."
+          },
+          "targetEV": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 3,
+            "description": "[Mode \"strategy\"] Target Expected Value (strokes to hole out, 1.0 to 10.0, default 3.0) to reverse-solve for required remaining fairway distance."
+          },
+          "currentDistanceYards": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 700,
+            "description": "[Mode \"strategy\"] Optional current distance to the hole in yards (1 to 700) to compute required advance yardage."
+          },
+          "courseId": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "[Mode \"course_search\" | \"hole_strategy\"] Exact course ID from ansr_course_profiles."
+          },
+          "query": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "[Mode \"course_search\" | \"hole_strategy\"] Golf facility name, kana, or English substring (e.g. \"ヒバリゴルフクラブ\", \"Hibari\", \"ゴールド札幌\")."
+          },
+          "facilityName": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "[Mode \"course_search\" | \"hole_strategy\"] Golf facility name filter (e.g. \"ヒバリゴルフクラブ\")."
+          },
+          "courseName": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "[Mode \"course_search\" | \"hole_strategy\"] Sub-course name filter (e.g. \"Out\", \"In\", \"東\", \"西\")."
+          },
+          "holeNumber": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 18,
+            "description": "[Mode \"hole_strategy\"] Specific hole number (1-18). Omit to compute the full GamePlan for all holes in the course."
+          },
+          "state": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "[Mode \"course_search\"] Nationwide prefecture filter across all 47 Japanese prefectures (e.g. \"北海道\", \"東京都\", \"大阪府\", \"兵庫県\", \"沖縄県\")."
+          },
+          "region": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "[Mode \"course_search\"] Region filter (e.g. \"関東\", \"近畿\", \"九州\")."
+          },
+          "includeHoles": {
+            "type": "boolean",
+            "default": true,
+            "description": "[Mode \"course_search\"] Include hole-by-hole GPS coordinates and yardages."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 10,
+            "description": "[Mode \"course_search\"] Maximum courses to return (1-20, default 10)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through result sets deterministically."
+          },
+          "queries": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "description": "Optional batch of 1 to 10 shot/strategy queries in a single request.",
+            "items": {
+              "type": "object",
+              "description": "Individual ANSR golf calculation query object."
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "query_seismic_hazards",
+      "description": "Read-only, idempotent spatial query of GSI 1m elevation, J-SHIS hazard, PLATEAU 3D models, and POIs in 47 prefectures (API key or x402; daily). Pass areaOrStation or lat/lon (default radiusKm=10, limit=30, offset=0); returns spatial records ordered by distance ascending. Note: For auctions, use query_court_foreclosures instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "areaOrStation": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Japanese address, municipality, or railway station across any of all 47 prefectures (e.g. \"東京都千代田区丸の内\", \"札幌駅\", \"大阪市北区\", \"博多駅\").",
+            "default": "東京都千代田区丸の内"
+          },
+          "lat": {
+            "type": "number",
+            "minimum": 20,
+            "maximum": 46,
+            "description": "Optional latitude in decimal degrees across Japan (20.0 to 46.0, e.g. 35.6812)."
+          },
+          "lon": {
+            "type": "number",
+            "minimum": 122,
+            "maximum": 154,
+            "description": "Optional longitude in decimal degrees across Japan (122.0 to 154.0, e.g. 139.7671)."
+          },
+          "radiusKm": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 100,
+            "description": "Haversine search radius in kilometers for nearby facilities (0.1 to 100, default: 10 km).",
+            "default": 10
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "all",
+              "location_seismic_elevation",
+              "hospitals_medical",
+              "corporate_procurement",
+              "court_auctions",
+              "plateau_3d_gtfs"
+            ],
+            "default": "all",
+            "description": "POI category filter (\"location_seismic_elevation\", \"hospitals_medical\", \"corporate_procurement\", \"court_auctions\", \"plateau_3d_gtfs\", or \"all\")."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Optional keyword filter across facilities, corporations, and datasets."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 30,
+            "description": "Maximum spatial POI records to return (1 to 200)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_collectibles_pricing",
+      "description": "Read-only, idempotent query of Pokemon TCG, Foil MTG, and Yu-Gi-Oh floor prices in JPY/USD/EUR, spreads, and 7d/30d deltas (API key or x402; daily). Pass game and keyword (default game=\"all\", limit=30, offset=0); returns pricing records ordered by observation time descending. Note: For search demand, use query_search_trends instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "game": {
+            "type": "string",
+            "enum": [
+              "all",
+              "pokemon",
+              "mtg_jp",
+              "yugioh",
+              "jp_sets"
+            ],
+            "default": "all",
+            "description": "Filter by TCG title (\"all\", \"pokemon\", \"mtg_jp\", \"yugioh\", or \"jp_sets\")."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Optional card name, set name, or SKU keyword filter."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 30,
+            "description": "Maximum TCG floor-price/set records to return (1 to 200)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_scientific_literature",
+      "description": "Read-only, idempotent query of OpenAlex CC0 Japanese research papers and NIH PubMed biomedical papers (API key or x402; daily). Pass feedType with keyword or minCitationCount (default feedType=\"all\", limit=30, offset=0); returns papers ordered by citation count descending. Note: For hospitals, use query_medical_facilities instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feedType": {
+            "type": "string",
+            "enum": [
+              "all",
+              "openalex_papers",
+              "pubmed_biotech"
+            ],
+            "default": "all",
+            "description": "Literature source filter (\"all\", \"openalex_papers\" for CC0 OpenAlex papers, or \"pubmed_biotech\" for NIH PubMed biomedical papers)."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Optional research topic, university, institution, PMID, or DOI keyword filter."
+          },
+          "minCitationCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000,
+            "description": "Optional minimum citation count threshold for academic papers (0 to 1,000,000)."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 30,
+            "description": "Maximum bibliographic paper records to return (1 to 200, default 30)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    },
+    {
+      "name": "query_corporate_registry",
+      "description": "Read-only, idempotent query of 5,858,407 JP firms in 47 prefectures, 44,293 domains, invoices, grades, LEIs, and OFAC (API key or x402; 24h). Pass mode with corporateNumber, domain, or lei (default mode=\"lookup\", limit=50, offset=0); returns entities ordered by match rank. Note: For recalls, use query_regulatory_recalls instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "lookup",
+              "batch",
+              "screen",
+              "filter",
+              "gleif_lei",
+              "ofac_sanctions",
+              "gov_qualification",
+              "edinet_gc_amendments"
+            ],
+            "default": "lookup",
+            "description": "Query mode: \"lookup\" / \"batch\" for O(1) 13-digit corporate number or domain batch lookup (1 to 1,000), \"screen\" / \"filter\" for multi-condition corporate substance & co-located address density filtering across all 47 prefectures, \"gleif_lei\" for ISO 17442 LEI / English corporate name / BIC / LAPSED lookup across 4,357 Japanese LEI corporations, \"ofac_sanctions\" for Zero-PII U.S. Treasury OFAC organizational sanctions screening (26,364 organizational records; Individual scope out_of_scope), \"gov_qualification\" for Digital Agency Unified Government Qualification (全省庁統一資格, Government of Japan Standard Terms of Use v2.0) A–D grade & company scale lookup across 62,630 indexed corporations in all 47 prefectures (partial catalog: 0 unresolved >500-hit slices, 13 pagination pages truncated by non-JCN rows — unindexed JCNs return not_observed), or \"edinet_gc_amendments\" for rolling-75d FSA EDINET API v2 Going Concern notes & amended securities report XBRL numeric diffs (3,061 filings)."
+          },
+          "qualificationGrade": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "description": "In \"gov_qualification\" mode, exact statutory procurement qualification grade (\"A\", \"B\", \"C\", or \"D\")."
+          },
+          "minQualificationGrade": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B",
+              "C",
+              "D"
+            ],
+            "description": "Minimum statutory procurement qualification grade (\"A\" highest through \"D\") in \"gov_qualification\" or \"screen\" mode."
+          },
+          "companyScale": {
+            "type": "string",
+            "enum": [
+              "large",
+              "sme",
+              "micro",
+              "other"
+            ],
+            "description": "In \"gov_qualification\" mode, statutory company scale (\"large\" 大企業, \"sme\" 中小企業, \"micro\" 小規模企業, or \"other\" その他)."
+          },
+          "edinetCode": {
+            "type": "string",
+            "maxLength": 6,
+            "pattern": "^E[0-9]{5}$",
+            "description": "In \"edinet_gc_amendments\" mode, 6-character FSA EDINET submitter code (e.g. \"E02144\")."
+          },
+          "secCode": {
+            "type": "string",
+            "maxLength": 5,
+            "pattern": "^[0-9A-Za-z]{4,5}$",
+            "description": "In \"edinet_gc_amendments\" mode, 4- or 5-character Japanese securities code (e.g. \"7203\" or \"72030\")."
+          },
+          "docId": {
+            "type": "string",
+            "maxLength": 8,
+            "pattern": "^S[0-9A-Za-z]{7}$",
+            "description": "In \"edinet_gc_amendments\" mode, 8-character EDINET filing document ID (e.g. \"S100ABCD\")."
+          },
+          "goingConcernOnly": {
+            "type": "boolean",
+            "description": "In \"edinet_gc_amendments\" mode, when true returns only corporate filings with statutory Going Concern notes (継続企業の前提に関する注記), Going Concern material events (重要事象等), or auditor Going Concern emphasis."
+          },
+          "amendmentsOnly": {
+            "type": "boolean",
+            "description": "In \"edinet_gc_amendments\" mode, when true returns only amended securities/quarterly/semi-annual reports (訂正報告書) with XBRL before/after element diff metadata."
+          },
+          "excludeGoingConcern": {
+            "type": "boolean",
+            "description": "In \"screen\" / \"filter\" mode, when true excludes corporations with active EDINET Going Concern notes or Going Concern material events."
+          },
+          "excludeRecentEdinetAmendments": {
+            "type": "boolean",
+            "description": "In \"screen\" / \"filter\" mode, when true excludes corporations that filed recent amended securities reports on EDINET."
+          },
+          "lei": {
+            "type": "string",
+            "maxLength": 20,
+            "pattern": "^[A-Za-z0-9]{20}$",
+            "description": "20-character ISO 17442 Legal Entity Identifier (e.g. \"5493006W3QUS5LMH6R84\" for Toyota Motor Corporation)."
+          },
+          "leis": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 20
+            },
+            "minItems": 1,
+            "maxItems": 1000,
+            "description": "Batch of 1 to 1,000 20-character ISO 17442 LEI codes."
+          },
+          "walletAddress": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Crypto wallet address (EVM/Base/ETH 0x..., BTC, SOL, TRX, etc.) for OFAC SDN Digital Currency Address sanctions screening."
+          },
+          "walletAddresses": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "minItems": 1,
+            "maxItems": 1000,
+            "description": "Batch of 1 to 1,000 crypto wallet addresses for pre-settlement OFAC sanctions screening."
+          },
+          "entityName": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Organization or corporate legal name for Zero-PII OFAC SDN Entity sanctions screening."
+          },
+          "entityNames": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "minItems": 1,
+            "maxItems": 1000,
+            "description": "Batch of 1 to 1,000 organization names for Zero-PII OFAC SDN Entity sanctions screening."
+          },
+          "assetSymbol": {
+            "type": "string",
+            "enum": [
+              "ARB",
+              "BCH",
+              "BSC",
+              "BTC",
+              "DASH",
+              "ETH",
+              "LTC",
+              "SOL",
+              "TON",
+              "TRX",
+              "USDC",
+              "USDT",
+              "XBT",
+              "XLM",
+              "XMR",
+              "XRP",
+              "ZEC"
+            ],
+            "description": "In \"ofac_sanctions\" catalog browse mode (when walletAddress/entityName are omitted), optional digital currency ticker filter across 600 organization-linked SDN wallets (e.g. \"TRX\", \"ETH\", \"XBT\", \"USDT\", \"ARB\", \"BCH\", \"XMR\", \"SOL\")."
+          },
+          "includeWeakAliases": {
+            "type": "boolean",
+            "default": false,
+            "description": "In \"ofac_sanctions\" mode, controls whether U.S. Treasury OFAC <category>weak</category> organizational AKAs (2,160 aliases) are included. Defaults to false (matches primary names + 11,549 strong AKAs only). When true, weak AKAs are also matched and tagged with matchedVia=\"weak_aka_alias\" and akaStrength=\"weak\"."
+          },
+          "strictExcludeUnobserved": {
+            "type": "boolean",
+            "default": false,
+            "description": "In \"screen\" / \"filter\" mode, controls unknown/unobserved handling for exclusion filters (excludeGoingConcern, excludeRecentEdinetAmendments, excludeLapsedLei). When false (default), unobserved corporations (e.g. not_observed_in_window for 75d EDINET or no registered LEI) are retained with explicit unobservedOrExcludedScopes[] tags (never certified clean). When true, unobserved corporations are ALSO excluded."
+          },
+          "lapsedOnly": {
+            "type": "boolean",
+            "description": "In \"gleif_lei\" mode, when true returns only Japanese corporations whose LEI annual renewal status is LAPSED."
+          },
+          "hasBicOnly": {
+            "type": "boolean",
+            "description": "In \"gleif_lei\" mode, when true returns only Japanese corporations with registered SWIFT BIC codes."
+          },
+          "requireGleifLei": {
+            "type": "boolean",
+            "description": "In \"screen\" / \"filter\" mode, when true requires the corporation to hold an active or registered GLEIF LEI."
+          },
+          "excludeLapsedLei": {
+            "type": "boolean",
+            "description": "In \"screen\" / \"filter\" mode, when true excludes corporations whose GLEIF LEI status is LAPSED."
+          },
+          "corporateNumber": {
+            "type": "string",
+            "maxLength": 13,
+            "pattern": "^[0-9]{13}$",
+            "description": "13-digit Japanese Corporate Number with valid NTA Mod-9 check digit (e.g. \"6010001269339\", \"3120001079845\") across 5,858,407 registered corporations in all 10,000 R2 shards (generation gen_37500fcdaacecf05)."
+          },
+          "corporateNumbers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 13
+            },
+            "minItems": 1,
+            "maxItems": 1000,
+            "description": "Batch of 1 to 1,000 13-digit Japanese Corporate Numbers."
+          },
+          "domain": {
+            "type": "string",
+            "maxLength": 253,
+            "description": "Filter or reverse-lookup by normalized official corporate website host (e.g. \"andque.com\", \"smarthr.jp\") across 107,126 D1 directory corporations / 44,227 unique corporate domains (4,551 live-measured B2A Readiness Tier & SPF/DMARC corporations)."
+          },
+          "domains": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 253
+            },
+            "minItems": 1,
+            "maxItems": 1000,
+            "description": "Batch of 1 to 1,000 corporate domains for counterparty batch verification."
+          },
+          "prefectureCode": {
+            "type": "string",
+            "maxLength": 2,
+            "pattern": "^(0[1-9]|[1-3][0-9]|4[0-7])$",
+            "description": "2-digit JIS prefecture code (\"01\" to \"47\", e.g. \"13\" for Tokyo, \"27\" for Osaka)."
+          },
+          "prefecture": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Prefecture name or code (e.g. \"東京都\", \"大阪府\", \"13\")."
+          },
+          "maxAddressDensity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000,
+            "description": "Maximum number of active corporations registered at the same normalized building address (1 to 100,000, e.g. 49 or 50 to exclude high-density co-located addresses)."
+          },
+          "excludeHighDensity50Plus": {
+            "type": "boolean",
+            "description": "When true, excludes corporations registered at addresses with 50 or more co-located active corporations."
+          },
+          "requireInvoiceRegistered": {
+            "type": "boolean",
+            "description": "When true, requires active NTA Qualified Invoice Issuer registration without revocation or expiration."
+          },
+          "requireRealBusinessSignal": {
+            "type": "boolean",
+            "description": "When true, requires at least one verified public activity signal (government procurement award, subsidy approval, IP/trademark registration, permit certification, financial disclosure, or official corporate domain)."
+          },
+          "excludeParrySpamObserved": {
+            "type": "boolean",
+            "description": "When true, excludes entities with observed PARRY unsolicited outbound domain/telephone matches, published administrative sanction records, or revoked/expired invoice registration."
+          },
+          "maxNameChangeCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Maximum historical corporate name change count (0 to 1,000)."
+          },
+          "maxRelocationCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+            "description": "Maximum historical head-office relocation count (0 to 1,000)."
+          },
+          "keyword": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "Optional substring filter across corporate name, municipality, or domain."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 50,
+            "description": "Maximum corporate/sanctions records to return per call (1 to 1,000, default 50)."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0,
+            "description": "Zero-based pagination offset (0..10000, default 0). Combine with limit to page through large result sets deterministically."
+          }
+        }
+      }
+    }
+  ],
+  "source": {
+    "type": "registry",
+    "registry": "registry.modelcontextprotocol.io",
+    "name": "com.andque/strata-b2a-mcp",
+    "version": "2.8.2",
+    "remoteUrl": "https://strata.andque.com/mcp",
+    "publishedAt": "2026-11-24T12:50:50.926791Z",
+    "fetchedAt": "2026-11-25T11:03:46.215Z",
+    "toolsSha256": "a89146c50e03405ae9d88c3f61b6585c1331e117af25fbedbe12a2dc7e29dc52"
+  }
+}

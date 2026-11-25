@@ -1,0 +1,258 @@
+{
+  "$schema": "../schema.json",
+  "name": "so.figment/mac",
+  "title": "Figment Mac hosting",
+  "category": "AI, LLMs & Agents",
+  "description": "Rent a Mac by the hour or day. An MCP server and a skill let AI agents order, use and stop it.",
+  "repository": "https://github.com/figment-so/figment-mac",
+  "tools": [
+    {
+      "name": "figment_get_offer",
+      "description": "Plans, prices in US cents, limits, billing rules and whether a Mac of each plan is free now. No key needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figment_create_account",
+      "description": "Makes an agent account with no credit and returns its api_key once. No sign-in. Call it one time and keep the key; do not make a new account for each task.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "agent_name": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "Your name, for example \"Claude Code\"."
+          },
+          "contact_email": {
+            "type": "string",
+            "description": "Optional email of your user, for support only."
+          }
+        },
+        "required": [
+          "agent_name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figment_get_account",
+      "description": "Credit balance in cents, the Macs of this account with their states, the limits, and a claim link that lets your user see the account in a browser.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "api_key": {
+            "type": "string",
+            "description": "The api_key from figment_create_account. Leave out if the MCP connection sends an Authorization header."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figment_buy_credit",
+      "description": "Returns a Stripe Checkout link for prepaid credit. Give the link to your user to pay, or pay it with a Link wallet. The first purchase is at least 2500 cents; one purchase is at most 50000 cents. This call takes no money by itself.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "amount_cents": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 50000,
+            "description": "Credit to buy, in US cents."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{16,80}$",
+            "description": "A new random string of 16 to 80 letters, digits, \"_\" or \"-\" for each new purchase or order. Send the same string again only to repeat the same request."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "The api_key from figment_create_account. Leave out if the MCP connection sends an Authorization header."
+          }
+        },
+        "required": [
+          "amount_cents",
+          "idempotency_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figment_start_mac",
+      "description": "Orders an hourly or daily Mac and pays for it from account credit. Billing starts when the order is accepted. Only call it when your user allowed you to rent a Mac. Answers credit_required when the account needs more credit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "intel-vm",
+              "apple-silicon-vm",
+              "dedicated-m4-pro"
+            ],
+            "description": "The plan id from figment_get_offer."
+          },
+          "period": {
+            "type": "string",
+            "enum": [
+              "hourly",
+              "daily"
+            ],
+            "description": "\"hourly\" bills by the minute from the time the order is accepted. \"daily\" buys 24 hours."
+          },
+          "accept_terms": {
+            "type": "boolean",
+            "description": "true after your user accepts the terms at figment.so/terms."
+          },
+          "authorization": {
+            "type": "string",
+            "enum": [
+              "user_authorized"
+            ],
+            "description": "Your user allowed you to rent a Mac for them."
+          },
+          "intel_compatibility_accepted": {
+            "type": "boolean",
+            "description": "Required for intel-vm. See the notice in the offer."
+          },
+          "allocation_accepted": {
+            "type": "boolean",
+            "description": "Required for new apple-silicon-vm orders after your user accepts the exact disclosure from figment_get_offer."
+          },
+          "allocation_revision": {
+            "type": "string",
+            "description": "Required for new apple-silicon-vm orders: the allocation revision from figment_get_offer."
+          },
+          "power_policy_revision": {
+            "type": "string",
+            "description": "Required for new apple-silicon-vm orders: the power policy revision from figment_get_offer."
+          },
+          "allocation_disclosure_version": {
+            "type": "string",
+            "description": "Required for new apple-silicon-vm orders: the disclosure version from figment_get_offer."
+          },
+          "allow_wait": {
+            "type": "boolean",
+            "description": "Order although no Mac of this plan is free now."
+          },
+          "renew_daily": {
+            "type": "boolean",
+            "description": "Only for period \"daily\". The day does not renew unless this is true."
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 60,
+            "description": "Optional name for this Mac: 1 to 60 letters, digits, spaces, \".\", \"_\" or \"-\". It comes back with the Mac."
+          },
+          "ssh_public_key": {
+            "type": "string",
+            "description": "Optional. Stored for a later install; not installed in this version."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{16,80}$",
+            "description": "A new random string of 16 to 80 letters, digits, \"_\" or \"-\" for each new purchase or order. Send the same string again only to repeat the same request."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "The api_key from figment_create_account. Leave out if the MCP connection sends an Authorization header."
+          }
+        },
+        "required": [
+          "plan",
+          "period",
+          "accept_terms",
+          "authorization",
+          "idempotency_key"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figment_get_mac",
+      "description": "State of one Mac: provisioning, ready, stopping, stopped, ended_before_setup, deleted or failed, with cost so far. Poll no more than once every 30 seconds.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mac_id": {
+            "type": "string",
+            "description": "The Mac id from figment_start_mac."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "The api_key from figment_create_account. Leave out if the MCP connection sends an Authorization header."
+          }
+        },
+        "required": [
+          "mac_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figment_get_mac_access",
+      "description": "SSH host and port for a ready Mac on a plan that includes SSH. With console true, also a one-time link to the Mac screen in a browser. With login true, also the Mac account name and password when available. The password is a secret: do not show it in chat or write it to logs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mac_id": {
+            "type": "string",
+            "description": "The Mac id from figment_start_mac."
+          },
+          "console": {
+            "type": "boolean",
+            "description": "true to also get a one-time link to the Mac screen in a browser."
+          },
+          "login": {
+            "type": "boolean",
+            "description": "true to also get the Mac login when available."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "The api_key from figment_create_account. Leave out if the MCP connection sends an Authorization header."
+          }
+        },
+        "required": [
+          "mac_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "figment_stop_mac",
+      "description": "Ends the rental. Access stops and billing stops. The Mac cannot be started again; its data is kept seven days, then deleted. Do this when the task is done.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mac_id": {
+            "type": "string",
+            "description": "The Mac id from figment_start_mac."
+          },
+          "api_key": {
+            "type": "string",
+            "description": "The api_key from figment_create_account. Leave out if the MCP connection sends an Authorization header."
+          }
+        },
+        "required": [
+          "mac_id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "source": {
+    "type": "registry",
+    "registry": "registry.modelcontextprotocol.io",
+    "name": "so.figment/mac",
+    "version": "1.0.1",
+    "remoteUrl": "https://figment.so/api/mcp",
+    "publishedAt": "2026-11-24T14:41:15.915783Z",
+    "fetchedAt": "2026-11-25T11:03:46.215Z",
+    "toolsSha256": "dd070c89a90ecf0d6c825ba57814b7bb61e7285713feffdd4ff2ed5819142a75"
+  }
+}

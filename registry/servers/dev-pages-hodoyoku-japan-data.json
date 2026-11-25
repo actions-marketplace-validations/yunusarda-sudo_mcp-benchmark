@@ -1,0 +1,169 @@
+{
+  "$schema": "../schema.json",
+  "name": "dev.pages.hodoyoku/japan-data",
+  "title": "Hodoyoku Japan data",
+  "category": "Other",
+  "description": "Japan earthquake site-impact checks, JMA warnings, holidays, minimum wage, ticket drops. x402.",
+  "tools": [
+    {
+      "name": "get_japan_ticket_drops",
+      "description": "Upcoming official Japan ticket, anime/manga, and food reservation openings in JST. Costs 0.01 USDC via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number",
+            "description": "Lookahead 1-180, default 90"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "tickets",
+              "anime-manga",
+              "food"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "get_japan_business_calendar",
+      "description": "Official Japan national holidays and typical government and bank closures, in JST. Costs 0.01 USDC via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "days": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_japan_weather_warnings",
+      "description": "Active official JMA weather warnings and advisories for one Japan forecast office, in English. Changes through the day. Costs 0.01 USDC via x402. Use office code or area name; call list_japan_warning_offices first if needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "office": {
+            "type": "string",
+            "description": "JMA office code, e.g. 130000"
+          },
+          "area": {
+            "type": "string",
+            "description": "English or Japanese area name, e.g. Tokyo"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_japan_minimum_wage",
+      "description": "Official Japan regional minimum wage (JPY/hour) in force on a date (JST) for one prefecture, or all 47 if pref is omitted. Handles staggered FY2026 effective dates and returns the next pending revision plus overtime/night premium rules, with MHLW source URLs. Costs 0.01 USDC via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pref": {
+            "type": "string",
+            "description": "JIS code 1-47 (e.g. 13) or English/Japanese name (e.g. Tokyo, 東京都). Omit for all 47."
+          },
+          "date": {
+            "type": "string",
+            "description": "YYYY-MM-DD in JST, default today"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_japan_worker_rights",
+      "description": "Know-before-you-work data for foreign workers in Japan: minimum wages, labour rights with e-Gov law citations (premiums, passport retention, wage payment), native-language help desks, and job-change rules by visa status. Costs 0.01 USDC via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string",
+            "enum": [
+              "minimum_wage",
+              "rights",
+              "help_desks",
+              "job_change"
+            ],
+            "description": "Optional: return one section only"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_japan_earthquakes",
+      "description": "Recent felt earthquakes in Japan from official JMA reports, in English: time (JST), epicenter, magnitude, depth, max seismic intensity (shindo) and per-prefecture intensity. Costs 0.01 USDC via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pref": {
+            "type": "string",
+            "description": "Optional prefecture: JIS code 1-47 or English/Japanese name (e.g. Tokyo)"
+          },
+          "min_intensity": {
+            "type": "string",
+            "description": "Optional minimum JMA intensity: 1, 2, 3, 4, 5-, 5+, 6-, 6+, 7"
+          },
+          "hours": {
+            "type": "number",
+            "description": "Lookback 1-720 hours, default 72"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Max events 1-200, default 50"
+          }
+        }
+      }
+    },
+    {
+      "name": "check_japan_earthquake_impact",
+      "description": "Batch check whether recent official JMA earthquake shaking reached a threshold at your Japan sites. Pass up to 50 prefectures or 7-digit JMA city codes, optionally labeled (HQ:Tokyo,Plant:Aichi); omit for all 47 prefectures. Returns per-site status none/felt/check/severe, max intensity and strongest event. Costs 0.01 USDC via x402.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sites": {
+            "type": "string",
+            "description": "Comma-separated sites, e.g. HQ:Tokyo,Plant:Aichi,27,4320500. Omit for all 47 prefectures."
+          },
+          "threshold": {
+            "type": "string",
+            "description": "JMA intensity that counts as impact: 1, 2, 3, 4 (default), 5-, 5+, 6-, 6+, 7"
+          },
+          "hours": {
+            "type": "number",
+            "description": "Lookback 1-720 hours, default 24"
+          }
+        }
+      }
+    },
+    {
+      "name": "list_japan_warning_offices",
+      "description": "Free list of 58 JMA forecast offices you can query with get_japan_weather_warnings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "source": {
+    "type": "registry",
+    "registry": "registry.modelcontextprotocol.io",
+    "name": "dev.pages.hodoyoku/japan-data",
+    "version": "1.3.0",
+    "remoteUrl": "https://hodoyoku.pages.dev/mcp",
+    "publishedAt": "2026-11-25T05:12:17.711818Z",
+    "fetchedAt": "2026-11-25T11:03:46.215Z",
+    "toolsSha256": "69b90bb1bc31138a25e8e7bb8c8bd419c785b68efe632675adaa4a8a291ae0d2"
+  }
+}
